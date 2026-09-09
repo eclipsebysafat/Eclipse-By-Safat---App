@@ -1,18 +1,39 @@
-name: Build Android Web Output
+name: Build Android APK
 on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm install --legacy-peer-deps
-      - run: npx expo export --platform web
-      - uses: actions/upload-artifact@v4
+          node-version: 18
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
         with:
-          name: App-Web-Build
-          path: dist/
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Generate Native Android Folder
+        run: npx expo prebuild --platform android --clean
+
+      - name: Build Android APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon -Dorg.gradle.jvmargs="-Xmx3072m -XX:MaxMetaspaceSize=512m"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eclipse-App-APK
+          path: android/app/build/outputs/apk/release/app-release.apk
           
